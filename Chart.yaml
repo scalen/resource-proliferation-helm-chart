@@ -1,0 +1,12 @@
+apiVersion: v2
+name: resource-proliferation
+description: >
+  A Helm library chart to support the creation of replicate sets of
+  resources, reusing the same set of templates with a set of varying
+  values. These sets of values can share common elements without
+  repetition, or deviate entirely from each other.
+
+type: library
+
+version: 0.1.0
+appVersion: "0.0.0"
