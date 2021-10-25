@@ -1,0 +1,13 @@
+apiVersion: v2
+name: various-webservers
+description: An example Helm chart creating three similar webservers.
+
+type: application
+
+dependencies:
+- name: resource-proliferation
+  version: ^0.1.0
+  repository: file://../..
+
+version: 0.1.0
+appVersion: "1.16.0"

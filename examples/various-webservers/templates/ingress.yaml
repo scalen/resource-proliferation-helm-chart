@@ -1,0 +1,72 @@
+{{- if .Values.ingress.enabled -}}
+{{- if and .Values.ingress.className (not (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion)) }}
+  {{- if not (hasKey .Values.ingress.annotations "kubernetes.io/ingress.class") }}
+    {{- $_ := set .Values.ingress.annotations "kubernetes.io/ingress.class" .Values.ingress.className}}
+  {{- end }}
+{{- end }}
+{{- if semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion -}}
+apiVersion: networking.k8s.io/v1
+{{- else if semverCompare ">=1.14-0" .Capabilities.KubeVersion.GitVersion -}}
+apiVersion: networking.k8s.io/v1beta1
+{{- else -}}
+apiVersion: extensions/v1beta1
+{{- end }}
+kind: Ingress
+metadata:
+  name: {{ include "various-webservers.fullname" . }}
+  labels:
+    {{- include "various-webservers.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if and .Values.ingress.className (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion) }}
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
+  {{- $instanceValues := (list . "webserversOverrides" | include "proliferation.renderValuesForAllKinds" | fromYaml).instanceValues }}
+  {{- $tls := .Values.ingress.tls | default (list) }}
+  {{- range $instanceValues }}
+    {{- $tls = dig "ingress" "tls" "" . | default (list) | concat $tls }}
+  {{- end }}
+  {{- if $tls }}
+  tls:
+    {{- range $tls }}
+    - hosts:
+        {{- range .hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      secretName: {{ .secretName }}
+    {{- end }}
+  {{- end }}
+  rules:
+  {{- $originalValues := mustDeepCopy .Values }}
+  {{- range $instanceValues }}
+    {{- range keys $.Values }}{{ $_ := unset $.Values . }}{{ end }}
+    {{- $_ := mustMergeOverwrite $.Values . }}
+
+    {{- range dig "ingress" "hosts" "" . | default (list) }}
+    - host: {{ tpl .host $ | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            {{- if and .pathType (semverCompare ">=1.18-0" $.Capabilities.KubeVersion.GitVersion) }}
+            pathType: {{ .pathType }}
+            {{- end }}
+            backend:
+              {{- if semverCompare ">=1.19-0" $.Capabilities.KubeVersion.GitVersion }}
+              service:
+                name: {{ include "various-webservers.fullname" $ }}
+                port:
+                  number: {{ $.Values.service.port }}
+              {{- else }}
+              serviceName: {{ include "various-webservers.fullname" $ }}
+              servicePort: {{ $.Values.service.port }}
+              {{- end }}
+          {{- end }}
+    {{- end }}
+  {{- end }}
+  {{- range keys $.Values }}{{ $_ := unset $.Values . }}{{ end }}
+  {{- $_ := mustMergeOverwrite $.Values $originalValues }}
+{{- end }}

@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "various-webservers.fullname" . }}-test-connection"
+  labels:
+    {{- include "various-webservers.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+spec:
+  containers:
+  {{- $originalValues := mustDeepCopy .Values }}
+  {{- $instanceValues := (list . "webserversOverrides" | include "proliferation.renderValuesForAllKinds" | fromYaml).instanceValues }}
+  {{- range $instanceValues }}
+    {{- range keys $.Values }}{{ $_ := unset $.Values . }}{{ end }}
+    {{- $_ := mustMergeOverwrite $.Values . }}
+    - name: wget
+      image: busybox
+      command: ['wget']
+      args: ['{{ include "various-webservers.fullname" $ }}:{{ $.Values.service.port }}']
+  {{- end }}
+  {{- range keys $.Values }}{{ $_ := unset $.Values . }}{{ end }}
+  {{- $_ := mustMergeOverwrite $.Values $originalValues }}
+  restartPolicy: Never

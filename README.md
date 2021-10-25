@@ -8,12 +8,13 @@ much of their configuration, replacing the use of multiple aliased instances of 
 an umbrella chart.
 
 As an example, this chart could be used to specify once the templated Deployment, ConfigMaps
-and Secrets for a web service, then replicate those resources for a whole set of similarly
-configured web services. These multiple similar web service Deployments could be joined, in
-the same chart, by an accompanying DaemonSet for log aggregation.
+HorizontalPodAutoscalers and Secrets for a web service, then replicate those resources for a
+whole set of similarly configured web services. These multiple similar web service
+Deployments could be joined, in the same chart, by a single shared Ingress for exposing all
+services.  This is the example available [here](/examples/various-webservers).
 
 Of course, the replicated resources can be renderred alongside any number and kind of other
-resources, such as a Deployment of, for example, a Controller, or a shared ingress, etc.
+resources, such as a Deployment of, for example, a Controller, or a logging DaemonSet, etc.
 Furthermore, these web service Deployments could be joined in the same chart by any number
 of other sets of replicated resources.
 
