@@ -15,14 +15,12 @@ Helpers for creating multiple similarly-configured instances from a single set o
   {{- $templatesDir := index . 0 -}}
   {{- $context := index . 1 -}}
 
-  {{- range $path, $_ := printf "%s/*" $templatesDir | $context.Files.Glob -}}
-    {{- $_ := tpl ($context.Files.Get $path) $context -}}
-  {{- end -}}
-
-  {{- range $path, $_ := printf "%s/[!_]*" $templatesDir | $context.Files.Glob }}
-# Source: {{ $path }}{{ with $context.Values.nameOverride }}, Kind: {{ . }}{{ end }}
-{{ tpl ($context.Files.Get $path) $context }}
+  {{- range $path, $_ := printf "%s/[!_]*" $templatesDir | $context.Files.Glob -}}
+    {{- with tpl ($context.Files.Get $path) $context -}}
 ---
+# Source: {{ $path }}{{ with $context.Values.nameOverride }}, Kind: {{ . }}{{ end }}
+{{ printf "%s\n" . }}
+    {{- end -}}
   {{- end -}}
 {{ end -}}
 
@@ -56,21 +54,30 @@ Helpers for creating multiple similarly-configured instances from a single set o
   {{- else -}}
     {{- $commonValues := omit $context.Values $kindsKey | mustDeepCopy -}}
     {{- range $kind, $specificValues := $kinds -}}
-      {{- /*
-      Empty .Values dict, and rebuild from the combination of kind-specific values and common
-      values.
-      */ -}}
-      {{- $instanceValues := mustMergeOverwrite (mustDeepCopy $context.Values) (mustDeepCopy $commonValues) $specificValues -}}
+      {{- if not (kindIs "invalid" $specificValues) -}}
+        {{- /*
+        Empty .Values dict, and rebuild from the combination of kind-specific values and common
+        values.
+        */ -}}
+        {{- $instanceValues := mustMergeOverwrite (mustDeepCopy $commonValues) $specificValues -}}
 
-      {{- /* Set a name override for the chart in the course of processing the instance. */ -}}
-      {{- $_ := set $instanceValues "baseNameOverride" ($instanceValues.baseNameOverride | default $instanceValues.nameOverride | default $context.Chart.Name) -}}
-      {{- if $instanceValues.nameOverride -}}
-        {{- $_ := printf "%s%s" $instanceValues.nameOverride $kind | set $instanceValues "nameOverride" -}}
-      {{- else -}}
-        {{- $_ := printf "%s%s" $kind $context.Chart.Name | set $instanceValues "nameOverride" -}}
+        {{- /* Set a name override for the chart in the course of processing the instance. */ -}}
+        {{- $_ := set $instanceValues "baseNameOverride" ($instanceValues.baseNameOverride | default $commonValues.nameOverride | default $context.Chart.Name) -}}
+        {{- if $commonValues.nameOverride -}}
+          {{- /* If there is a common nameOverride, append the kind's nameOverride, or its key. */ -}}
+          {{- with $specificValues.nameOverride | default $kind -}}
+            {{- $_ := printf "%s-%s" $commonValues.nameOverride . | set $instanceValues "nameOverride" -}}
+          {{- end -}}
+          {{- /* Otherwise, just use the common nameOverride (via the original merge). */ -}}
+        {{- else if not $specificValues.nameOverride | and $kind -}}
+          {{- /* If there is no common nameOverride but there is a kind-specific one, use that (via the original merge). */ -}}
+          {{- /* If there is no kind-specific nameOverride and the kind's key is empty, don't set a nameOverride. */ -}}
+          {{- /* If there is no kind-specific nameOverride, but the kind's key is non-empty, prepend it to the chart name. */ -}}
+          {{- $_ := printf "%s%s" $kind $context.Chart.Name | set $instanceValues "nameOverride" -}}
+        {{- end -}}
+
+        {{- $allInstanceValues = mustAppend $allInstanceValues $instanceValues -}}
       {{- end -}}
-
-      {{- $allInstanceValues = mustAppend $allInstanceValues $instanceValues -}}
     {{- end -}}
   {{- end -}}
 
