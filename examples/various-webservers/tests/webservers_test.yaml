@@ -1,0 +1,149 @@
+suite: test webserver proliferation
+templates:
+- webservers.yaml
+tests:
+- it: refers to instances using webserversOverrides sub-key value
+  # webserversOverrides keys are firstof and secondof, which become e.g. firstofvarious-webservers
+  # through concatenation with the chart name.
+  asserts:
+  - hasDocuments:
+      count: 4
+
+  - isKind:
+      of: Deployment
+    documentIndex: 0
+  - matchRegex:
+      path: metadata.name
+      pattern: -firstofvarious-webservers$
+    documentIndex: 0
+  - equal:
+      path: spec.template.metadata.labels.app\.kubernetes\.io/name
+      value: firstofvarious-webservers
+    documentIndex: 0
+
+  - isKind:
+      of: Service
+    documentIndex: 1
+  - matchRegex:
+      path: metadata.name
+      pattern: -firstofvarious-webservers$
+    documentIndex: 1
+  - equal:
+      path: spec.selector.app\.kubernetes\.io/name
+      value: firstofvarious-webservers
+    documentIndex: 1
+
+  - isKind:
+      of: Deployment
+    documentIndex: 2
+  - matchRegex:
+      path: metadata.name
+      pattern: -secondofvarious-webservers$
+    documentIndex: 2
+  - equal:
+      path: spec.template.metadata.labels.app\.kubernetes\.io/name
+      value: secondofvarious-webservers
+    documentIndex: 2
+
+  - isKind:
+      of: Service
+    documentIndex: 3
+  - matchRegex:
+      path: metadata.name
+      pattern: -secondofvarious-webservers$
+    documentIndex: 3
+  - equal:
+      path: spec.selector.app\.kubernetes\.io/name
+      value: secondofvarious-webservers
+    documentIndex: 3
+
+- it: applies overriding values to the specified instances only
+  set:
+    webserversOverrides:
+      firstof:
+        autoscaling:
+          enabled: true
+      secondof:
+        service:
+          port: 8080
+  asserts:
+  - hasDocuments:
+      count: 5
+
+    # Document 0 is a Deployment that should be unchanged from the base case
+
+    # With autoscaling enabled, instance firstof gets an HPA that targets it.
+  - isKind:
+      of: HorizontalPodAutoscaler
+    documentIndex: 1
+  - matchRegex:
+      path: metadata.name
+      pattern: -firstofvarious-webservers$
+    documentIndex: 1
+  - matchRegex:
+      path: spec.scaleTargetRef.name
+      pattern: -firstofvarious-webservers$
+    documentIndex: 1
+    # Instance secondof does not have autoscaling enabled, so gets no HPA.
+
+    # Instance firstof's service is available at the port specified in the common values.
+  - isKind:
+      of: Service
+    documentIndex: 2
+  - matchRegex:
+      path: metadata.name
+      pattern: -firstofvarious-webservers$
+    documentIndex: 2
+  - equal:
+      path: spec.ports[0].port
+      value: 80
+    documentIndex: 2
+
+    # Document 3 is a Deployment that should be unchanged from document 2 in the base case
+
+    # Instance secondof's service is available at the overriding port specified for it.
+  - isKind:
+      of: Service
+    documentIndex: 4
+  - matchRegex:
+      path: metadata.name
+      pattern: -secondofvarious-webservers$
+    documentIndex: 4
+  - equal:
+      path: spec.ports[0].port
+      value: 8080
+    documentIndex: 4
+
+- it: eliminates instances where overrides are null
+  # This is useful to allow value overrides to eliminate instances that were specified at another
+  # level of configuration.
+  set:
+    webserversOverrides:
+      firstof: null
+  asserts:
+  - hasDocuments:
+      count: 2
+
+  - isKind:
+      of: Deployment
+    documentIndex: 0
+  - matchRegex:
+      path: metadata.name
+      pattern: -secondofvarious-webservers$
+    documentIndex: 0
+  - equal:
+      path: spec.template.metadata.labels.app\.kubernetes\.io/name
+      value: secondofvarious-webservers
+    documentIndex: 0
+
+  - isKind:
+      of: Service
+    documentIndex: 1
+  - matchRegex:
+      path: metadata.name
+      pattern: -secondofvarious-webservers$
+    documentIndex: 1
+  - equal:
+      path: spec.selector.app\.kubernetes\.io/name
+      value: secondofvarious-webservers
+    documentIndex: 1
