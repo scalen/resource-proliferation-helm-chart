@@ -82,20 +82,5 @@ tolerations: []
 affinity: {}
 
 webserversOverrides:
-  firstof:
-    autoscaling:
-      enabled: true
-    podAnnotations:
-      who-is-first: I am!
-  secondof:
-    ingress:
-      hosts:
-        - host: chart-example.local
-          paths:
-            - path: /second-service/
-              pathType: ImplementationSpecific
-    podAnnotations:
-      who-is-first: Not me :(
-    service:
-      port: 8080
-
+  firstof: {}
+  secondof: {}
