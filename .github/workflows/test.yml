@@ -1,0 +1,17 @@
+name: Test Library Chart
+on: [pull_request]
+jobs:
+  Helm-Unittest-Library-via-Example:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Prepare example chart
+      uses: docker://quintush/helm-unittest:3.6.3-0.2.7
+      with:
+        entrypoint: "helm"
+        args: "dependency update examples/various-webservers"
+    - name: Perform tests
+      run: |-
+        docker run --rm -v "${PWD}:/apps" \
+          quintush/helm-unittest:3.6.3-0.2.7 -3 \
+          examples/various-webservers
