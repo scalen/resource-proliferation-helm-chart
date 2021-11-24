@@ -62,19 +62,16 @@ Helpers for creating multiple similarly-configured instances from a single set o
         {{- $instanceValues := mustMergeOverwrite (mustDeepCopy $commonValues) $specificValues -}}
 
         {{- /* Set a name override for the chart in the course of processing the instance. */ -}}
-        {{- $_ := set $instanceValues "baseNameOverride" ($instanceValues.baseNameOverride | default $commonValues.nameOverride | default $context.Chart.Name) -}}
-        {{- if $commonValues.nameOverride -}}
-          {{- /* If there is a common nameOverride, append the kind's nameOverride, or its key. */ -}}
-          {{- with $specificValues.nameOverride | default $kind -}}
-            {{- $_ := printf "%s-%s" $commonValues.nameOverride . | set $instanceValues "nameOverride" -}}
-          {{- end -}}
-          {{- /* Otherwise, just use the common nameOverride (via the original merge). */ -}}
-        {{- else if not $specificValues.nameOverride | and $kind -}}
-          {{- /* If there is no common nameOverride but there is a kind-specific one, use that (via the original merge). */ -}}
-          {{- /* If there is no kind-specific nameOverride and the kind's key is empty, don't set a nameOverride. */ -}}
-          {{- /* If there is no kind-specific nameOverride, but the kind's key is non-empty, prepend it to the chart name. */ -}}
-          {{- $_ := printf "%s%s" $kind $context.Chart.Name | set $instanceValues "nameOverride" -}}
+        {{- $parentName := $commonValues.nameOverride | default $context.Chart.Name -}}
+        {{- $_ := $instanceValues.baseNameOverride | default $parentName | set $instanceValues "baseNameOverride" -}}
+        {{- if not $specificValues.nameOverride -}}
+          {{- $_ := printf "%s-%s" $parentName $kind | set $instanceValues "nameOverride" -}}
         {{- end -}}
+
+        {{- /* Enumerate stack of proliferations performed to get this instance context. */ -}}
+        {{- $proliferationEntry := dict "group" $kindsKey "instance" $kind -}}
+        {{- $proliferationStack := $commonValues.proliferationStack | default (list) -}}
+        {{- $_ := mustAppend $proliferationStack $proliferationEntry | set $instanceValues "proliferationStack" -}}
 
         {{- $allInstanceValues = mustAppend $allInstanceValues $instanceValues -}}
       {{- end -}}

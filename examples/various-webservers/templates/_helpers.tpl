@@ -32,13 +32,24 @@ If release name contains chart name it will be used as a full name.
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
-{{- $name := default .Chart.Name .Values.baseNameOverride }}
+{{- $name := .Values.baseNameOverride | default .Values.nameOverride | default .Chart.Name }}
 {{- if contains $name .Release.Name }}
 {{- .Release.Name | trunc 63 | trimSuffix "-" }}
 {{- else }}
 {{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" }}
 {{- end }}
 {{- end }}
+{{- end }}
+
+{{/*
+Expand the verbose name of the chart and specific server.
+We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
+*/}}
+{{- define "various-webservers.verbosename" -}}
+{{- .Values.baseNameOverride | default .Values.nameOverride | default .Chart.Name }}
+{{- range .Values.proliferationStack | default (list) -}}
+{{- printf "-%s-%s" .group .instance -}}
+{{- end -}}
 {{- end }}
 
 {{/*
@@ -54,6 +65,7 @@ Common labels
 {{- define "various-webservers.labels" -}}
 helm.sh/chart: {{ include "various-webservers.chart" . }}
 {{ include "various-webservers.selectorLabels" . }}
+app.kubernetes.io/verbosename: {{ include "various-webservers.verbosename" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}

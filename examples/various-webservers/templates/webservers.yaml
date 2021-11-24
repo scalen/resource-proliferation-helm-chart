@@ -1,1 +1,1 @@
-{{- list . "webserver-templates" "webserversOverrides" | include "proliferation.renderTemplatesFromDirectoryForAllKinds" -}}
+{{- list . "webserver-templates" "webservers" | include "proliferation.renderTemplatesFromDirectoryForAllKinds" -}}
