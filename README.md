@@ -101,7 +101,8 @@ proliferationStack:
 This chart is not currently available in a Helm chart museum or repository.  However, it
 can be installed as a Git submodule directly into a parent chart's `charts` directory.
 Alternatively, it could be simply cloned onto the same machine as a parent chart, then
-referenced as a local dependency.
+referenced as a local dependency.  Finally, this repository can be referenced as a Helm
+repository using [Helm-Git](https://github.com/aslafy-z/helm-git).
 
 ## Partial Templates
 
