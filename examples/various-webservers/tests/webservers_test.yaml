@@ -3,7 +3,7 @@ templates:
 - webservers.yaml
 tests:
 - it: refers to instances using webserversOverrides sub-key value
-  # webserversOverrides keys are firstof and secondof, which become e.g. firstofvarious-webservers
+  # webserversOverrides keys are first and second, which become e.g. various-webservers-first
   # through concatenation with the chart name.
   asserts:
   - hasDocuments:
@@ -14,11 +14,15 @@ tests:
     documentIndex: 0
   - matchRegex:
       path: metadata.name
-      pattern: -firstofvarious-webservers$
+      pattern: -various-webservers-first$
+    documentIndex: 0
+  - equal:
+      path: metadata.labels.app\.kubernetes\.io/verbosename
+      value: various-webservers-webservers-first
     documentIndex: 0
   - equal:
       path: spec.template.metadata.labels.app\.kubernetes\.io/name
-      value: firstofvarious-webservers
+      value: various-webservers-first
     documentIndex: 0
 
   - isKind:
@@ -26,11 +30,15 @@ tests:
     documentIndex: 1
   - matchRegex:
       path: metadata.name
-      pattern: -firstofvarious-webservers$
+      pattern: -various-webservers-first$
+    documentIndex: 1
+  - equal:
+      path: metadata.labels.app\.kubernetes\.io/verbosename
+      value: various-webservers-webservers-first
     documentIndex: 1
   - equal:
       path: spec.selector.app\.kubernetes\.io/name
-      value: firstofvarious-webservers
+      value: various-webservers-first
     documentIndex: 1
 
   - isKind:
@@ -38,11 +46,15 @@ tests:
     documentIndex: 2
   - matchRegex:
       path: metadata.name
-      pattern: -secondofvarious-webservers$
+      pattern: -various-webservers-second$
+    documentIndex: 2
+  - equal:
+      path: metadata.labels.app\.kubernetes\.io/verbosename
+      value: various-webservers-webservers-second
     documentIndex: 2
   - equal:
       path: spec.template.metadata.labels.app\.kubernetes\.io/name
-      value: secondofvarious-webservers
+      value: various-webservers-second
     documentIndex: 2
 
   - isKind:
@@ -50,20 +62,24 @@ tests:
     documentIndex: 3
   - matchRegex:
       path: metadata.name
-      pattern: -secondofvarious-webservers$
+      pattern: -various-webservers-second$
+    documentIndex: 3
+  - equal:
+      path: metadata.labels.app\.kubernetes\.io/verbosename
+      value: various-webservers-webservers-second
     documentIndex: 3
   - equal:
       path: spec.selector.app\.kubernetes\.io/name
-      value: secondofvarious-webservers
+      value: various-webservers-second
     documentIndex: 3
 
 - it: applies overriding values to the specified instances only
   set:
-    webserversOverrides:
-      firstof:
+    webservers:
+      first:
         autoscaling:
           enabled: true
-      secondof:
+      second:
         service:
           port: 8080
   asserts:
@@ -78,11 +94,11 @@ tests:
     documentIndex: 1
   - matchRegex:
       path: metadata.name
-      pattern: -firstofvarious-webservers$
+      pattern: -various-webservers-first$
     documentIndex: 1
   - matchRegex:
       path: spec.scaleTargetRef.name
-      pattern: -firstofvarious-webservers$
+      pattern: -various-webservers-first$
     documentIndex: 1
     # Instance secondof does not have autoscaling enabled, so gets no HPA.
 
@@ -92,7 +108,7 @@ tests:
     documentIndex: 2
   - matchRegex:
       path: metadata.name
-      pattern: -firstofvarious-webservers$
+      pattern: -various-webservers-first$
     documentIndex: 2
   - equal:
       path: spec.ports[0].port
@@ -107,7 +123,7 @@ tests:
     documentIndex: 4
   - matchRegex:
       path: metadata.name
-      pattern: -secondofvarious-webservers$
+      pattern: -various-webservers-second$
     documentIndex: 4
   - equal:
       path: spec.ports[0].port
@@ -118,8 +134,8 @@ tests:
   # This is useful to allow value overrides to eliminate instances that were specified at another
   # level of configuration.
   set:
-    webserversOverrides:
-      firstof: null
+    webservers:
+      first: null
   asserts:
   - hasDocuments:
       count: 2
@@ -129,11 +145,11 @@ tests:
     documentIndex: 0
   - matchRegex:
       path: metadata.name
-      pattern: -secondofvarious-webservers$
+      pattern: -various-webservers-second$
     documentIndex: 0
   - equal:
       path: spec.template.metadata.labels.app\.kubernetes\.io/name
-      value: secondofvarious-webservers
+      value: various-webservers-second
     documentIndex: 0
 
   - isKind:
@@ -141,9 +157,9 @@ tests:
     documentIndex: 1
   - matchRegex:
       path: metadata.name
-      pattern: -secondofvarious-webservers$
+      pattern: -various-webservers-second$
     documentIndex: 1
   - equal:
       path: spec.selector.app\.kubernetes\.io/name
-      value: secondofvarious-webservers
+      value: various-webservers-second
     documentIndex: 1
