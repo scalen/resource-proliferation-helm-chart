@@ -18,6 +18,84 @@ resources, such as a Deployment of, for example, a Controller, or a logging Daem
 Furthermore, these web service Deployments could be joined in the same chart by any number
 of other sets of replicated resources.
 
+## Behaviour and Intent
+
+The intent of this library chart is to support the specification of repeating resources in
+a manner that feels like native Helm templating:
+
+* The top context available to a replicated template is a normal Helm context;
+* The expected values are the same both for the replicated and "base"/"singleton" templates;
+* Given the above, conventional partial templates defined in the base `templates` should
+  work as expected (mostly, see below).
+
+### Chart naming within replicated templates
+
+Where templates are replicated multiple times, the notion of the chart's "name" (following
+the convention of `<chart>.name` and `<chart>.fullname` partial templates, as well as
+`nameOverride` and `fullnameOverride`, established by the canonical example chart) becomes
+more complicated: It is often used as the base part of the name for the majority of a
+chart's resources, so that the specific resource for that chart is identifiable from the
+same kind of resource defined in another chart in the same release.  However, with multiple
+replicates of the same resources would need separate "names"; these would most naturally be
+specific to their specific context.
+
+To this end, whenever a new context is created, the "name" according to the root context is
+recorded as a new value called `baseNameOverride`; this is either the `nameOverride` in the
+root context, or the name of the chart itself.  Furthemore, the `nameOverride` value is set
+in each created context based on the first applicable rule in the following list:
+
+1. If the `nameOverride` is set in the more specific context, use that exactly.
+2. If the `nameOverride` is set in the more general context, use that value suffixed with
+   the name of the specific context, separated by a hyphen.
+3. Otherwise, use the `baseNameOverride` of the specific context, suffixed with its
+   specific name, separated by a hyphen.
+
+This will ensure that the resources in each replica of a set replicated templates will
+have unique names when using the canonical `<chart>.name` and `<chart>.fullname` partial
+templates.  It is advised that a `<chart>.basefullname` partial template is also created,
+for referring to resources from the base `templates` directory from within a replicated
+template.
+
+Another new value called `proliferationStack` is also made available, to support more
+complex naming conventions than expressed by the above rules.  This makes the full stack
+of nested proliferation contexts that have contributed to the current context available,
+in the form of a list of objects with attributes for the `group` and `instance` within
+that group.  For example, one "specific context" produced from the given "input values"
+would look like this:
+
+_input values_:
+```yaml
+wheels: 2
+wings: 0
+vehicles:
+  plane:
+    wings: 2
+    models:
+      biplane:
+        wings: 4
+        wheels: 3
+      fighter:
+        wheels: 3
+      carrier:
+        wheels: 12
+  cars:
+    wheels: 4
+    models:
+      morrissMinor:
+        wheels: 3
+      vwGolf: {}
+```
+_specific context_:
+```yaml
+wheels: 3
+wings: 2
+proliferationStack:
+- group: vehicles
+  instance: plane
+- group: models
+  instance: fighter
+```
+
 ## Installation
 
 This chart is not currently available in a Helm chart museum or repository.  However, it

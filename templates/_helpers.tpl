@@ -76,6 +76,11 @@ Helpers for creating multiple similarly-configured instances from a single set o
           {{- $_ := printf "%s%s" $kind $context.Chart.Name | set $instanceValues "nameOverride" -}}
         {{- end -}}
 
+        {{- /* Enumerate stack of proliferations performed to get this instance context. */ -}}
+        {{- $proliferationEntry := dict "group" $kindsKey "instance" $kind -}}
+        {{- $proliferationStack := $commonValues.proliferationStack | default (list) -}}
+        {{- $_ := mustAppend $proliferationStack $proliferationEntry | set $instanceValues "proliferationStack" -}}
+
         {{- $allInstanceValues = mustAppend $allInstanceValues $instanceValues -}}
       {{- end -}}
     {{- end -}}
