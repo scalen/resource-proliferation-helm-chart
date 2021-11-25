@@ -163,3 +163,26 @@ tests:
       path: spec.selector.app\.kubernetes\.io/name
       value: various-webservers-second
     documentIndex: 1
+
+- it: makes explicit nameOverrides available in the proliferationStack
+  # This is useful when constructing non-default naming conventions (as demonstrated
+  # in this chart in the verbosename template) that still need to respect name overrides.
+  set:
+    webservers:
+      first:
+        nameOverride: test
+  asserts:
+  - hasDocuments:
+      count: 4
+
+  - isKind:
+      of: Deployment
+    documentIndex: 0
+  - matchRegex:
+      path: metadata.name
+      pattern: -test$
+    documentIndex: 0
+  - equal:
+      path: metadata.labels.app\.kubernetes\.io/verbosename
+      value: test
+    documentIndex: 0
