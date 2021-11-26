@@ -69,6 +69,7 @@ wheels: 2
 wings: 0
 vehicles:
   plane:
+    nameOverride: mechanicalBird
     wings: 2
     models:
       biplane:
@@ -92,6 +93,7 @@ wings: 2
 proliferationStack:
 - group: vehicles
   instance: plane
+  nameOverride: mechanicalBird
 - group: models
   instance: fighter
 ```

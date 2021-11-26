@@ -46,10 +46,17 @@ Expand the verbose name of the chart and specific server.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
 */}}
 {{- define "various-webservers.verbosename" -}}
-{{- .Values.baseNameOverride | default .Values.nameOverride | default .Chart.Name }}
+{{- $baseName := .Values.baseNameOverride | default .Values.nameOverride | default .Chart.Name }}
+{{- $nameExtension := "" -}}
 {{- range .Values.proliferationStack | default (list) -}}
-{{- printf "-%s-%s" .group .instance -}}
+{{- if .nameOverride -}}
+{{- $nameExtension = "" -}}
+{{- $baseName = .nameOverride -}}
+{{- else -}}
+{{- $nameExtension = printf "%s-%s-%s" $nameExtension .group .instance -}}
 {{- end -}}
+{{- end -}}
+{{- printf "%s%s" $baseName $nameExtension -}}
 {{- end }}
 
 {{/*

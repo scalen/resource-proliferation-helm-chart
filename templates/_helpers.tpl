@@ -61,17 +61,19 @@ Helpers for creating multiple similarly-configured instances from a single set o
         */ -}}
         {{- $instanceValues := mustMergeOverwrite (mustDeepCopy $commonValues) $specificValues -}}
 
-        {{- /* Set a name override for the chart in the course of processing the instance. */ -}}
-        {{- $parentName := $commonValues.nameOverride | default $context.Chart.Name -}}
-        {{- $_ := $instanceValues.baseNameOverride | default $parentName | set $instanceValues "baseNameOverride" -}}
-        {{- if not $specificValues.nameOverride -}}
-          {{- $_ := printf "%s-%s" $parentName $kind | set $instanceValues "nameOverride" -}}
-        {{- end -}}
-
         {{- /* Enumerate stack of proliferations performed to get this instance context. */ -}}
         {{- $proliferationEntry := dict "group" $kindsKey "instance" $kind -}}
         {{- $proliferationStack := $commonValues.proliferationStack | default (list) -}}
         {{- $_ := mustAppend $proliferationStack $proliferationEntry | set $instanceValues "proliferationStack" -}}
+
+        {{- /* Set a name override for the chart in the course of processing the instance. */ -}}
+        {{- $parentName := $commonValues.nameOverride | default $context.Chart.Name -}}
+        {{- $_ := $instanceValues.baseNameOverride | default $parentName | set $instanceValues "baseNameOverride" -}}
+        {{- if $specificValues.nameOverride -}}
+          {{- $_ := set $proliferationEntry "nameOverride" $specificValues.nameOverride -}}
+        {{- else -}}
+          {{- $_ := printf "%s-%s" $parentName $kind | set $instanceValues "nameOverride" -}}
+        {{- end -}}
 
         {{- $allInstanceValues = mustAppend $allInstanceValues $instanceValues -}}
       {{- end -}}
